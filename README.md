@@ -1,54 +1,51 @@
-<<<<<<< HEAD
-# PhotoboothApp
-=======
-# Welcome to your Expo app 👋
+# 📸 Mobile Photobooth App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A **React Native** mobile application that captures photos, compiles them into photo strips, and enables **instant sharing or printing** via **AirDrop** and connected printers.  
+Designed for event use, the app dynamically adapts to various printer paper sizes, ensuring consistent quality and layout for every photo strip.
 
-## Get started
+---
 
-1. Install dependencies
+## 🎥 Demo
+[▶️ Watch Demo Video](#)  
 
-   ```bash
-   npm install
-   ```
+---
 
-2. Start the app
+## 🖼️ Screenshots
 
-   ```bash
-   npx expo start
-   ```
+### 📱 Capture Screen  
+![Capture Screen](screenshots/capture.png)
 
-In the output, you'll find options to open the app in a
+### 🧩 Photo Strip Preview  
+![Photo Strip Preview](screenshots/preview.png)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### 🖨️ Print & Share Options  
+![Print and Share](screenshots/share.png)
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
+## ✨ Features
 
-When you're ready, run:
+- **Photo Capture & Strip Compilation**  
+  Capture photos using the device camera and automatically compile them into classic photo strips.
 
-```bash
-npm run reset-project
-```
+- **Instant Sharing**  
+  Share photo strips instantly using **AirDrop** or save them directly to local storage.
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- **Direct Printing**  
+  Supports connected printers for quick, seamless printing of finished photo strips.
 
-## Learn more
+- **Adaptive Layout System**  
+  Dynamically adjusts photo strip dimensions to match printer paper size and orientation.
 
-To learn more about developing your project with Expo, look at the following resources:
+- **Performance Optimized**  
+  Designed for reliable use during events, allowing smooth capture and printing sessions.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+---
 
-## Join the community
+## 🧠 Technologies Used
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
->>>>>>> bb0d99c (Initial commit)
+- **React Native (TypeScript)**
+- **Expo** (for camera and image handling)
+- **React Navigation**
+- **Native Modules for AirDrop and Print Integration**
+- **Styled Components** (for UI consistency)
