@@ -5,24 +5,6 @@ Designed for event use, the app dynamically adapts to various printer paper size
 
 ---
 
-## 🎥 Demo
-[▶️ Watch Demo Video](#)  
-
----
-
-## 🖼️ Screenshots
-
-### 📱 Capture Screen  
-![Capture Screen](screenshots/capture.png)
-
-### 🧩 Photo Strip Preview  
-![Photo Strip Preview](screenshots/preview.png)
-
-### 🖨️ Print & Share Options  
-![Print and Share](screenshots/share.png)
-
----
-
 ## ✨ Features
 
 - **Photo Capture & Strip Compilation**  
