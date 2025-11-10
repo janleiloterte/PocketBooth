@@ -1,75 +1,110 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useRef, useState } from 'react';
+import { AntDesign } from '@expo/vector-icons';
+import { CameraType, CameraView, useCameraPermissions, CameraCapturedPicture } from 'expo-camera';
+import { Button, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import PhotoPreviewSection from '@/components/PhotoPreviewSection';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-export default function HomeScreen() {
+export default function Camera() {
+  const [permission, requestPermission] = useCameraPermissions();
+  const [facing, setFacing] = useState<CameraType>('back');
+  const [photos, setPhotos] = useState<CameraCapturedPicture[]>([]);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const camRef = useRef<CameraView | null>(null);
+
+  if (!permission) return <View />;
+  if (!permission.granted) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.text}>We need your permission to show the camera</Text>
+        <Button onPress={requestPermission} title="Grant permission" />
+      </View>
+    );
+  }
+
+  const toggleFacing = () => setFacing(f => (f === 'back' ? 'front' : 'back'));
+
+  const snapWithCountdown = async () => {
+    for (let i = 3; i > 0; i--) {
+      setCountdown(i);
+      await sleep(1000);
+    }
+    setCountdown(null);
+
+    if (!camRef.current) return;
+    const shot = await camRef.current.takePictureAsync({ quality: 1, base64: true, exif: false });
+    setPhotos(p => [...p, shot]);
+  };
+
+  const snapFour = async () => {
+    if (busy) return;
+    setBusy(true);
+    setPhotos([]);
+    for (let i = 0; i < 4; i++) await snapWithCountdown();
+    setBusy(false);
+  };
+
+  const reset = () => setPhotos([]);
+
+  if (photos.length === 4) {
+    return <PhotoPreviewSection photo={photos} handleRetakePhoto={reset} />;
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      <View style={styles.buttons}>
+        <TouchableOpacity style={styles.button} onPress={toggleFacing} disabled={busy}>
+          <AntDesign name="retweet" size={40} color="black" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={snapFour} disabled={busy}>
+          <AntDesign name="camera" size={40} color="black" />
+        </TouchableOpacity>
+      </View>
+
+      <CameraView style={styles.camera} facing={facing} ref={camRef}>
+        {countdown !== null && (
+          <View style={styles.countdown}>
+            <Text style={styles.countText}>{countdown}</Text>
+          </View>
+        )}
+      </CameraView>
+
+      <Image
+        source={require('@/assets/images/LogoBlack.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
+  container: { flex: 1, backgroundColor: 'black', alignItems: 'center', justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'black' },
+  text: { color: 'white', marginBottom: 12, textAlign: 'center' },
+
+  camera: { width: '100%', aspectRatio: 4 / 3, borderRadius: 20, overflow: 'hidden' },
+
+  buttons: {
     position: 'absolute',
+    top: 120,
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 50,
+    zIndex: 10,
   },
+  button: { padding: 20, backgroundColor: 'white', borderRadius: 50 },
+
+  countdown: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.25)',
+  },
+  countText: { fontSize: 80, fontWeight: 'bold', color: 'white' },
+
+  logo: { position: 'absolute', top: 775, width: 400, alignSelf: 'center' },
 });

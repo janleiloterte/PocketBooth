@@ -1,24 +1,25 @@
 import { Fontisto } from '@expo/vector-icons';
 import { CameraCapturedPicture } from 'expo-camera';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  TouchableOpacity,
-  SafeAreaView,
-  Image,
-  StyleSheet,
-  View,
   ActivityIndicator,
-  Dimensions,
-  Text,
   Alert,
+  Dimensions,
+  Image,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
 import * as Print from 'expo-print';
-import * as FileSystem from 'expo-file-system'; // Corrected typo here
 import * as Sharing from 'expo-sharing';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+type Captured = { fileUri: string; base64: string };
 
 const PhotoPreviewSection = ({
   photo,
@@ -27,123 +28,91 @@ const PhotoPreviewSection = ({
   photo: CameraCapturedPicture[];
   handleRetakePhoto: () => void;
 }) => {
-  const [combinedPhotoUri, setCombinedPhotoUri] = useState<string | null>(null);
+  const [strip, setStrip] = useState<Captured | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isSharingImage, setIsSharingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const stripViewRef = useRef(null);
+  const stripRef = useRef<View | null>(null);
 
-  const photoWidth = 200;
-  const photoHeight = 125;
-  const photoPadding = 10;
-  const stripCanvasMargin = 20;
-  const stripBackgroundColor = 'white';
-
-  const totalPhotosHeight = photo.length * photoHeight;
-  const totalPaddingHeight = (photo.length - 1) * photoPadding;
-  const stripContentHeight = totalPhotosHeight + totalPaddingHeight;
-  const stripContentWidth = photoWidth;
-  const finalStripCanvasWidth = stripContentWidth + 2 * stripCanvasMargin;
-  const aspectRatio = 637.5 / 1650;
-  const finalStripCanvasHeight = finalStripCanvasWidth / aspectRatio;
+  const photoW = 200;
+  const photoH = 125;
+  const pad = 10;
+  const margin = 20;
+  const aspect = 637.5 / 1650;
+  const canvasW = photoW + 2 * margin;
+  const canvasH = canvasW / aspect;
 
   useEffect(() => {
-    const generatePhotoboothStrip = async () => {
+    const makeStrip = async () => {
       setIsLoading(true);
       setError(null);
-      setCombinedPhotoUri(null);
+      setStrip(null);
+      if (!photo.length) return setIsLoading(false);
 
-      if (photo.length === 0) {
-        setIsLoading(false);
-        return;
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-
+      await new Promise(r => setTimeout(r, 250));
       try {
-        if (!stripViewRef.current) throw new Error("View reference is null.");
+        if (!stripRef.current) throw new Error('View ref is null');
 
-        const uri = await captureRef(stripViewRef, {
+        const fileUri = await captureRef(stripRef.current, {
           format: 'png',
           quality: 1,
-          height: finalStripCanvasHeight,
-          width: finalStripCanvasWidth,
+          width: canvasW,
+          height: canvasH,
+          result: 'tmpfile',
         });
 
-        setCombinedPhotoUri(uri);
+        const base64 = await captureRef(stripRef.current, {
+          format: 'png',
+          quality: 1,
+          width: canvasW,
+          height: canvasH,
+          result: 'base64',
+        });
+
+        setStrip({ fileUri, base64 });
 
         const { status } = await MediaLibrary.requestPermissionsAsync();
-        if (status === 'granted') {
-          await MediaLibrary.saveToLibraryAsync(uri);
-        }
+        if (status === 'granted') await MediaLibrary.saveToLibraryAsync(fileUri);
       } catch (e: any) {
-        console.error('Strip generation failed:', e);
-        setError(`Error: ${e.message || 'Unknown'}`);
+        setError(e?.message || 'Unknown error');
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (photo.length > 0) generatePhotoboothStrip();
-    else setIsLoading(false);
+    makeStrip();
   }, [photo]);
 
   const handleExportPdf = async () => {
-    if (!combinedPhotoUri) return setError("No image available to export.");
-
+    if (!strip) return setError('No image available to export.');
     setIsExportingPdf(true);
-    setError(null);
-
     try {
-      const base64Image = await FileSystem.readAsStringAsync(combinedPhotoUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-
-      const html = `
-        <!DOCTYPE html>
-<html>
-  <body style="margin:0;padding:0;">
-    <div style="display:flex;flex-direction:row;">
-      <img src="data:image/png;base64,${base64Image}" style="width:25%;height:auto;" />
-      <img src="data:image/png;base64,${base64Image}" style="width:25%;height:auto;" />
-    </div>
-  </body>
-</html>`;
-
-      const { uri: pdfUri } = await Print.printToFileAsync({ html });
-      await Print.printAsync({ uri: pdfUri });
+      const html = `<!DOCTYPE html><html><body style="margin:0">
+        <div style="display:flex">
+          <img src="data:image/png;base64,${strip.base64}" style="width:25%;height:auto"/>
+          <img src="data:image/png;base64,${strip.base64}" style="width:25%;height:auto"/>
+        </div>
+      </body></html>`;
+      const { uri } = await Print.printToFileAsync({ html });
+      await Print.printAsync({ uri });
     } catch (e: any) {
-      console.error('PDF export error:', e);
-      Alert.alert("Export Failed", e.message || 'Unknown error');
+      Alert.alert('Export Failed', e?.message || 'Unknown error');
     } finally {
       setIsExportingPdf(false);
     }
   };
 
   const handleShareImage = async () => {
-    if (!combinedPhotoUri) {
-      setError("No image to share.");
-      Alert.alert("Share Failed", "No image available.");
-      return;
-    }
-
+    if (!strip) return;
     setIsSharingImage(true);
-    setError(null);
-
     try {
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (!isAvailable) return Alert.alert("Not Available", "Sharing not supported.");
-
-      await Sharing.shareAsync(combinedPhotoUri, {
-        mimeType: 'image/png',
-        dialogTitle: 'Share your Photobooth Strip',
-        UTI: 'public.png',
-      });
+      const ok = await Sharing.isAvailableAsync();
+      if (!ok) return Alert.alert('Not Available', 'Sharing not supported.');
+      await Sharing.shareAsync(strip.fileUri, { mimeType: 'image/png', UTI: 'public.png' });
     } catch (e: any) {
-      console.error('Share error:', e);
-      Alert.alert("Share Failed", e.message || 'Unknown error');
+      Alert.alert('Share Failed', e?.message || 'Unknown error');
     } finally {
       setIsSharingImage(false);
     }
@@ -152,35 +121,23 @@ const PhotoPreviewSection = ({
   return (
     <SafeAreaView style={styles.container}>
       <View
-        ref={stripViewRef}
+        ref={stripRef}
+        collapsable={false}
         style={[
           styles.hiddenStrip,
-          {
-            width: finalStripCanvasWidth,
-            height: finalStripCanvasHeight,
-            padding: stripCanvasMargin,
-            backgroundColor: stripBackgroundColor,
-          },
+          { width: canvasW, height: canvasH, padding: margin, backgroundColor: 'white' },
         ]}
       >
-        {photo.map((pic, i) => (
-          pic.base64 ? (
+        {photo.map((p, i) =>
+          p.base64 ? (
             <Image
               key={i}
-              style={{
-                width: photoWidth,
-                height: photoHeight,
-                marginBottom: i < photo.length - 1 ? photoPadding : 0,
-              }}
-              source={{ uri: 'data:image/jpg;base64,' + pic.base64 }}
+              style={{ width: photoW, height: photoH, marginBottom: i < photo.length - 1 ? pad : 0 }}
+              source={{ uri: 'data:image/jpg;base64,' + p.base64 }}
             />
           ) : null
-        ))}
-        {/* Logo with absolute positioning */}
-        <Image
-          source={require('../assets/images/loveislandlogo.png')}
-          style={styles.logoStyle} // Apply the new style here
-        />
+        )}
+        <Image source={require('../assets/images/LogoWhite.png')} style={styles.logo} />
       </View>
 
       <View style={styles.stripContainer}>
@@ -188,46 +145,42 @@ const PhotoPreviewSection = ({
           <ActivityIndicator size="large" color="white" />
         ) : error ? (
           <Text style={styles.errorText}>{error}</Text>
-        ) : combinedPhotoUri ? (
+        ) : strip ? (
           <Image
             style={{
               width: screenWidth * 0.8,
-              height: (screenWidth * 0.3) * (finalStripCanvasHeight / finalStripCanvasWidth),
+              height: (screenWidth * 0.3) * (canvasH / canvasW),
               resizeMode: 'contain',
             }}
-            source={{ uri: combinedPhotoUri }}
+            source={{ uri: `data:image/png;base64,${strip.base64}` }}
           />
         ) : (
           <View style={styles.noPhotoPlaceholder}>
-            <Fontisto name="camera" size={100} color="gray" />
+            <Fontisto name="camera" size={40} color="black" />
             <Text style={styles.noPhotoText}>No photos to display.</Text>
           </View>
         )}
       </View>
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={handleRetakePhoto}
-          disabled={isLoading || isExportingPdf || isSharingImage}
-        >
-          <Fontisto name="camera" size={24} color="white" />
+      <View style={styles.buttonRow}>
+        <TouchableOpacity style={styles.button} onPress={handleRetakePhoto} disabled={isLoading || isExportingPdf || isSharingImage}>
+          <Fontisto name="camera" size={40} color="black" />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.button, styles.exportButton, (!combinedPhotoUri || isLoading || isExportingPdf || isSharingImage) && styles.disabledButton]}
+          style={[styles.button, (!strip || isLoading || isExportingPdf || isSharingImage) && styles.disabled]}
           onPress={handleExportPdf}
-          disabled={!combinedPhotoUri || isLoading || isExportingPdf || isSharingImage}
+          disabled={!strip || isLoading || isExportingPdf || isSharingImage}
         >
-          {isExportingPdf ? <ActivityIndicator size="small" color="black" /> : <Fontisto name="print" size={24} color="white" />}
+          {isExportingPdf ? <ActivityIndicator size="small" color="black" /> : <Fontisto name="print" size={40} color="black" />}
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.button, styles.shareButton, (!combinedPhotoUri || isLoading || isExportingPdf || isSharingImage) && styles.disabledButton]}
+          style={[styles.button, (!strip || isLoading || isExportingPdf || isSharingImage) && styles.disabled]}
           onPress={handleShareImage}
-          disabled={!combinedPhotoUri || isLoading || isExportingPdf || isSharingImage}
+          disabled={!strip || isLoading || isExportingPdf || isSharingImage}
         >
-          {isSharingImage ? <ActivityIndicator size="small" color="white" /> : <Fontisto name="share" size={24} color="white" />}
+          {isSharingImage ? <ActivityIndicator size="small" color="black" /> : <Fontisto name="share" size={40} color="black" />}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -235,81 +188,16 @@ const PhotoPreviewSection = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'black',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  hiddenStrip: {
-    position: 'absolute',
-    top: -9999,
-    left: -9999,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    overflow: 'hidden',
-  },
-  stripContainer: {
-    flex: 1,
-    width: '100%',
-    backgroundColor: 'darkgray',
-    borderRadius: 15,
-    paddingVertical: 20,
-    marginTop: 20,
-    marginBottom: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  noPhotoPlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  noPhotoText: {
-    marginTop: 10,
-    color: 'gray',
-    fontSize: 16,
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 16,
-    textAlign: 'center',
-    margin: 10,
-  },
-  buttonContainer: {
-    marginBottom: 60,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    width: '100%',
-    gap: 20,
-  },
-  button: {
-    backgroundColor: 'gray',
-    borderRadius: 25,
-    padding: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  exportButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 20,
-  },
-  shareButton: {
-    backgroundColor: '#007bff',
-    paddingHorizontal: 15,
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  logoStyle: {
-    position: 'absolute', // This is key for absolute positioning
-    width: 150, // Adjust as needed
-    height: 75,  // Adjust as needed (maintain aspect ratio if desired)
-    bottom: 0,  // Example: 20 pixels from the bottom of the strip
-    marginHorizontal: 'auto',
-    resizeMode: 'contain',
-  },
+  container: { flex: 1, backgroundColor: 'black', alignItems: 'center', justifyContent: 'center' },
+  hiddenStrip: { position: 'absolute', top: -9999, left: -9999, alignItems: 'center', justifyContent: 'flex-start', overflow: 'hidden' },
+  stripContainer: { flex: 1, width: '100%', backgroundColor: 'black', paddingVertical: 10, marginTop: 75, justifyContent: 'center', alignItems: 'center' },
+  noPhotoPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  noPhotoText: { marginTop: 10, color: 'gray', fontSize: 16 },
+  errorText: { color: 'red', fontSize: 16, textAlign: 'center', margin: 10 },
+  buttonRow: { marginBottom: 150, flexDirection: 'row', justifyContent: 'center', width: '100%', gap: 50 },
+  button: { backgroundColor: 'white', borderRadius: 50, padding: 20, alignItems: 'center', justifyContent: 'center' },
+  disabled: { opacity: 0.5 },
+  logo: { position: 'absolute', width: 150, height: 75, bottom: 0, resizeMode: 'contain' },
 });
 
 export default PhotoPreviewSection;
