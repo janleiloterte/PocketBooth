@@ -8,7 +8,7 @@ Designed for event use, the app dynamically adapts to various printer paper size
 ## 🖼️ Screenshots
 
 ### 📷 Camera Page
-![Camera Page](screenshots/camera.png)
+<img src="screenshots/camera.png" width="30%" />
 
 ### 📸 Camera Page (During Countdown)
 <div style="display: flex; justify-content: center; gap: 10px;">
@@ -18,7 +18,7 @@ Designed for event use, the app dynamically adapts to various printer paper size
 </div>
 
 ### 🎞️ Strip Page
-![Strip Page](screenshots/strip.PNG)
+<img src="screenshots/strip.png" width="30%" />
 
 ---
 
