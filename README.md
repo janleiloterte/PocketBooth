@@ -1,7 +1,24 @@
-# 📸 Mobile Photobooth App
+# 📸 Mobile Photobooth App - PocketBooth
 
 A **React Native** mobile application that captures photos, compiles them into photo strips, and enables **instant sharing or printing** via **AirDrop** and connected printers.  
 Designed for event use, the app dynamically adapts to various printer paper sizes, ensuring consistent quality and layout for every photo strip.
+
+---
+
+## 🖼️ Screenshots
+
+### 📷 Camera Page
+![Camera Page](screenshots/camera.png)
+
+### 📸 Camera Page (During Countdown)
+<div style="display: flex; justify-content: center; gap: 10px;">
+  <img src="screenshots/countdown3.png" width="30%" />
+  <img src="screenshots/countdown2.png" width="30%" />
+  <img src="screenshots/countdown1.png" width="30%" />
+</div>
+
+### 🎞️ Strip Page
+![Strip Page](screenshots/strip.PNG)
 
 ---
 
