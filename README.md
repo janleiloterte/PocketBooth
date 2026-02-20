@@ -10,7 +10,7 @@ Designed for event use, the app dynamically adapts to various printer paper size
 
 [![Demo Video](screenshots/thumbnail.jpg)](https://youtu.be/YIYv7OCN2mI)
 
-➡️ [Click here to watch the demo]https://youtu.be/YIYv7OCN2mI)
+➡️ [Click here to watch the demo](https://youtu.be/YIYv7OCN2mI)
 
 ---
 
